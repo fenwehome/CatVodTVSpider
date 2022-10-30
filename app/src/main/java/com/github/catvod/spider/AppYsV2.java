@@ -468,7 +468,7 @@ public class AppYsV2 extends Spider {
     private static final Pattern parsePattern1 = Pattern.compile(".*(url|v|vid|php\\?id)=");
     private static final Pattern parsePattern2 = Pattern.compile("https?://[^/]*");
 
-    private static final Pattern[] htmlVideoKeyMatch = new Pattern[]{
+    protected static final Pattern[] htmlVideoKeyMatch = new Pattern[]{
             Pattern.compile("player=new"),
             Pattern.compile("<div id=\"video\""),
             Pattern.compile("<div id=\"[^\"]*?player\""),
@@ -479,7 +479,9 @@ public class AppYsV2 extends Spider {
     };
 
     private String UA(String URL) {
-        if (URL.contains("api.php/app") || URL.contains("xgapp") || URL.contains("freekan")) {
+        if (URL.contains("vod.9e03.com")) {
+            return "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Mobile Safari/537.36";
+        } else if (URL.contains("api.php/app") || URL.contains("xgapp") || URL.contains("freekan")) {
             return "Dart/2.14 (dart:io)";
         } else if (URL.contains("zsb") || URL.contains("fkxs") || URL.contains("xays") || URL.contains("xcys") || URL.contains("szys") || URL.contains("dxys") || URL.contains("ytys") || URL.contains("qnys")) {
             return "Dart/2.15 (dart:io)";
@@ -595,7 +597,7 @@ public class AppYsV2 extends Spider {
     }
 
     // ######选集
-    private final HashMap<String, ArrayList<String>> parseUrlMap = new HashMap<>();
+    protected final HashMap<String, ArrayList<String>> parseUrlMap = new HashMap<>();
 
     private void genPlayList(String URL, JSONObject object, String json, JSONObject vod, String vid) throws JSONException {
         ArrayList<String> playUrls = new ArrayList<>();
@@ -762,13 +764,24 @@ public class AppYsV2 extends Spider {
     }
 
     // ######视频地址
-    private JSONObject getFinalVideo(String flag, ArrayList<String> parseUrls, String url) throws JSONException {
+    protected JSONObject getFinalVideo(String flag, ArrayList<String> parseUrls, String url) throws JSONException {
         String htmlPlayUrl = "";
         for (String parseUrl : parseUrls) {
             if (parseUrl.isEmpty() || parseUrl.equals("null"))
                 continue;
             String playUrl = parseUrl + url;
             String content = desc(OkHttpUtil.string(playUrl, null), (byte) 4);
+            if (parseUrl.contains("49.233.47.42:9898")) {
+
+                HashMap hashMap = new HashMap();
+                OkHttpUtil.stringNoRedirect(playUrl,null, hashMap);
+                String d = OkHttpUtil.getRedirectLocation(hashMap);
+                JSONObject result = new JSONObject();
+                result.put("parse", 0);
+                result.put("playUrl", "");
+                result.put("url", d);
+                return result;
+            }
             JSONObject tryJson = null;
             try {
                 tryJson = Misc.jsonParse(url, content);
@@ -811,7 +824,6 @@ public class AppYsV2 extends Spider {
     public boolean isVideoFormat(String url) {
         return Misc.isVideoFormat(url);
     }
-
 
     private String getApiUrl() {
         if (extInfos == null || extInfos.length < 1)

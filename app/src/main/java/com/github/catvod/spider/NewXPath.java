@@ -20,7 +20,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
-public class XPath extends Spider {
+public class NewXPath extends Spider {
+
 
     @Override
     public void init(Context context) {
@@ -133,20 +134,11 @@ public class XPath extends Spider {
         return rule.getCateUrl().replace("{cateId}", tid).replace("{catePg}", pg);
     }
 
-    protected String categoryUrl2(String tid, String pg, boolean filter, HashMap<String, String> extend) {
-        return rule.getCateUrl2().replace("{cateId}", tid).replace("{catePg}", pg);
-    }
-
     @Override
     public String categoryContent(String tid, String pg, boolean filter, HashMap<String, String> extend) {
         try {
             fetchRule();
-            String webUrl = "";
-            if (!tid.startsWith("@")) {
-                webUrl = categoryUrl(tid, pg, filter, extend);
-            } else {
-                webUrl = categoryUrl2(tid.replace("@",""), pg, filter, extend);
-            }
+            String webUrl = categoryUrl(tid, pg, filter, extend);
             JSONArray videos = new JSONArray();
             JXDocument doc = JXDocument.create(fetch(webUrl));
             List<JXNode> vodNodes = doc.selN(rule.getCateVodNode());
@@ -168,7 +160,7 @@ public class XPath extends Spider {
                     }
                 }
                 JSONObject v = new JSONObject();
-                v.put("vod_id", id);
+                v.put("vod_id", name + "$$$" + pic + "$$$" + id);
                 v.put("vod_name", name);
                 v.put("vod_pic", pic);
                 v.put("vod_remarks", mark);
@@ -195,19 +187,16 @@ public class XPath extends Spider {
     public String detailContent(List<String> ids) {
         try {
             fetchRule();
-            String webUrl = rule.getDetailUrl().replace("{vid}", ids.get(0));
+            String[] idInfo = ids.get(0).split("\\$\\$\\$");
+            System.out.println(ids.get(0));
+            String webUrl = rule.getDetailUrl().replace("{vid}", idInfo[2]);
+
             String webContent = fetch(webUrl);
             JXDocument doc = JXDocument.create(webContent);
             JXNode vodNode = doc.selNOne(rule.getDetailNode());
 
-            String cover = "", title = "", desc = "", category = "", area = "", year = "", remark = "", director = "", actor = "";
+            String cover = idInfo[1], title = idInfo[0], desc = "", category = "", area = "", year = "", remark = "", director = "", actor = "";
 
-            title = vodNode.selOne(rule.getDetailName()).asString().trim();
-            title = rule.getDetailNameR(title);
-
-            cover = vodNode.selOne(rule.getDetailImg()).asString().trim();
-            cover = rule.getDetailImgR(cover);
-            cover = Misc.fixUrl(webUrl, cover);
 
             if (!rule.getDetailCate().isEmpty()) {
                 try {
@@ -267,7 +256,7 @@ public class XPath extends Spider {
             }
 
             JSONObject vod = new JSONObject();
-            vod.put("vod_id", ids.get(0));
+            vod.put("vod_id", idInfo[2]);
             vod.put("vod_name", title);
             vod.put("vod_pic", cover);
             vod.put("type_name", category);
@@ -346,7 +335,7 @@ public class XPath extends Spider {
             result.put("parse", 1);
             result.put("playUrl", "");
             if (!rule.getPlayUa().isEmpty()) {
-                result.put("header", rule.getPlayUa());
+                result.put("ua", rule.getPlayUa());
             }
             result.put("url", webUrl);
             return result.toString();
@@ -386,7 +375,7 @@ public class XPath extends Spider {
                             String mark = vod.optString(rule.getSearchVodMark()).trim();
                             mark = rule.getSearchVodMarkR(mark);
                             JSONObject v = new JSONObject();
-                            v.put("vod_id", id);
+                            v.put("vod_id", name + "$$$" + pic + "$$$" + id);
                             v.put("vod_name", name);
                             v.put("vod_pic", pic);
                             v.put("vod_remarks", mark);
@@ -417,7 +406,7 @@ public class XPath extends Spider {
                         }
                     }
                     JSONObject v = new JSONObject();
-                    v.put("vod_id", id);
+                    v.put("vod_id", name + "$$$" + pic + "$$$" + id);
                     v.put("vod_name", name);
                     v.put("vod_pic", pic);
                     v.put("vod_remarks", mark);
@@ -438,7 +427,8 @@ public class XPath extends Spider {
         return false;
     }
 
-    private String[] videoFormatList = new String[]{".m3u8", ".mp4", ".mpeg", ".flv"};
+    private String[] videoFormatList = new String[]{".m3u8", ".mp4", ".mpeg", ".flv", ".mp3", ".m4a"};
+
 
     @Override
     public boolean isVideoFormat(String url) {
@@ -446,6 +436,7 @@ public class XPath extends Spider {
         if (url.contains("=http") || url.contains("=https") || url.contains("=https%3a%2f") || url.contains("=http%3a%2f")) {
             return false;
         }
+
         for (String format : videoFormatList) {
             if (url.contains(format)) {
                 return true;
